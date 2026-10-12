@@ -36,5 +36,5 @@ jobs:
             git commit -m "chore: update schedule $(date -u +%FT%TZ)"
             git push
           else
-            echo "Нет изменений — пропускаем коммит"
+            echo "Нет изменений — пропускаем"
           fi
