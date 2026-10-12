@@ -1,26 +1,37 @@
-name: Parse scheduler
-"on":
+name: Parse schedule
+
+on:
   schedule:
-    - cron: 15 * * * *
+    - cron: "15 * * * *"
   workflow_dispatch: {}
+
 permissions:
   contents: write
+  actions: write
+
 concurrency:
   group: parse-schedule
   cancel-in-progress: true
+
 jobs:
   parse:
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+
       - name: Run parser
         run: node parse.js
+
       - name: Commit & push if changed
+        id: commit
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -28,6 +39,20 @@ jobs:
             git add schedule.json
             git commit -m "chore: update schedule $(date -u +%FT%TZ)"
             git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "Нет изменений — пропускаем коммит"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Trigger deploy
+        if: steps.commit.outputs.changed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deploy.yml',
+              ref: 'main',
+            });
