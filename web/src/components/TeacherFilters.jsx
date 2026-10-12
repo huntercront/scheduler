@@ -23,18 +23,17 @@ export default function TeacherFilters({
 
       <label>
         Преподаватель:
-        <input
-          type="text"
-          list="teachers-list"
+        <select
           value={teacher}
-          placeholder="начните вводить ФИО"
           onChange={(e) => onTeacherChange(e.target.value)}
-        />
-        <datalist id="teachers-list">
+        >
+          <option value="">— выберите —</option>
           {teachers.map((t) => (
-            <option key={t} value={t} />
+            <option key={t} value={t}>
+              {t}
+            </option>
           ))}
-        </datalist>
+        </select>
       </label>
 
       <label>

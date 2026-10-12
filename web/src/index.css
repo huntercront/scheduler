@@ -272,6 +272,9 @@ td.time {
   border: 1px solid var(--border);
   border-radius: 8px;
 }
+.agenda-item.hl {
+  background: var(--hl);
+}
 .agenda-time {
   min-width: 100px;
   font-weight: 600;
