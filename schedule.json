@@ -1,10 +1,7 @@
 {
-  "updatedAt": "2026-10-12T13:11:28.929Z",
+  "updatedAt": "2026-10-12T13:06:55.046Z",
   "source": "https://tvermedcollege.gitverse.site/tmk_schedule/",
-  "weeks": [
-    "Неделя I",
-    "Неделя II"
-  ],
+  "weeks": ["Неделя I", "Неделя II"],
   "groupsCount": 86,
   "templates": {
     "Неделя I": {
