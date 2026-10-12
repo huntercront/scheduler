@@ -1,0 +1,5 @@
+node_modules/
+web/node_modules/
+web/dist/
+debug.html
+web/public/schedule.json

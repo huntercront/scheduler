@@ -1,0 +1,11 @@
+{
+  "name": "scheduler",
+  "version": "1.0.0",
+  "description": "Scrape schedule data into a static JSON file",
+  "type": "module",
+  "scripts": {
+    "parse": "node parse.js",
+    "dev": "npm run parse && npm --prefix web run dev",
+    "build": "npm run parse && npm --prefix web run build"
+  }
+}
