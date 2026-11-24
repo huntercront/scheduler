@@ -18,7 +18,8 @@ export default function App() {
         <div className="header-content">
           <h1>Расписание</h1>
           <p className="muted">
-            Обновлено: {new Date(data.updatedAt).toLocaleString("ru-RU")}
+            Обновлено из источника:{" "}
+            {new Date(data.updatedAt).toLocaleString("ru-RU")}
           </p>
         </div>
         <ModeSwitch mode={mode} onChange={setMode} />
