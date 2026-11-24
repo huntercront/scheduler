@@ -39,7 +39,7 @@ export default function TeacherFilters({
       <label>
         Вид:
         <select value={layout} onChange={(e) => onLayoutChange(e.target.value)}>
-          <option value="table">Таблица день × время</option>
+          <option value="table">Таблица</option>
           <option value="agenda">Список по дням</option>
         </select>
       </label>

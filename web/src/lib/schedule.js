@@ -30,6 +30,70 @@ export function asLessons(value) {
   return Array.isArray(value) ? value : [value];
 }
 
+/* ------------------ нормализация преподавателей ------------------ */
+
+/**
+ * Приводит строку преподавателя к единому виду:
+ *  - схлопывает пробелы, обрезает края;
+ *  - запятая/точка с запятой в инициалах -> точка;
+ *  - инициалы в верхний регистр;
+ *  - убирает пробелы между инициалами;
+ *  - фамилия с заглавной.
+ * Примеры:
+ *   "Гичкина Е.В,"  -> "Гичкина Е.В."
+ *   "Шатилова е.М." -> "Шатилова Е.М."
+ *   "Прилипа С.и."  -> "Прилипа С.И."
+ */
+export function normalizeTeacher(raw) {
+  if (!raw) return "";
+  let s = String(raw)
+    .replace(/\u00A0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // запятая/точка с запятой на конце инициалов -> точка
+  s = s.replace(/([А-Яа-яЁё])[.,;]\s*([А-Яа-яЁё])[.,;]?\s*$/u, "$1.$2.");
+  s = s.replace(/([А-Яа-яЁё])[.,;]\s*$/u, "$1.");
+
+  // инициалы в верхний регистр: "е.М." -> "Е.М."
+  s = s.replace(/\b([А-Яа-яЁё])\./gu, (_, c) => c.toUpperCase() + ".");
+
+  // убрать пробелы между инициалами: "Е. В." -> "Е.В."
+  s = s.replace(/([А-ЯЁ])\.\s+([А-ЯЁ])\./gu, "$1.$2.");
+
+  // фамилия с заглавной
+  s = s.replace(/^([а-яё])/u, (_, c) => c.toUpperCase());
+
+  return s;
+}
+
+/**
+ * Разбивает составное значение на массив преподавателей.
+ * "Пташинский  / Дмитриев" -> ["Пташинский", "Дмитриев"]
+ */
+export function splitTeachers(raw) {
+  if (!raw) return [];
+  return String(raw).split("/").map(normalizeTeacher).filter(Boolean);
+}
+
+/**
+ * Ключ для сравнения: фамилия + инициалы без точек и пробелов, нижний регистр.
+ * "Гичкина Е.В," и "Гичкина Е.В." -> "гичкинаев"
+ */
+export function teacherKey(raw) {
+  return normalizeTeacher(raw).replace(/[.\s]/g, "").toLowerCase();
+}
+
+/**
+ * Ключ только по фамилии.
+ * "Малинин Н.Н." и "Малинин" -> "малинин"
+ */
+export function teacherSurnameKey(raw) {
+  const n = normalizeTeacher(raw);
+  const m = n.match(/^([А-ЯЁ][а-яё-]+)/u);
+  return m ? m[1].toLowerCase() : "";
+}
+
 /**
  * Мержит «продолжение» с якорем.
  * Правило: поля из overlay заполняют только те поля якоря,
@@ -41,7 +105,8 @@ function mergeLesson(anchor, overlay) {
     const anchorEmpty = !merged[key] || !String(merged[key]).trim();
     const overlayFilled = overlay[key] && String(overlay[key]).trim();
     if (anchorEmpty && overlayFilled) {
-      merged[key] = overlay[key];
+      merged[key] =
+        key === "teacher" ? normalizeTeacher(overlay[key]) : overlay[key];
     }
   }
   merged.continuation = true;
@@ -54,7 +119,8 @@ function mergeLesson(anchor, overlay) {
  *  - берёт якорь — предыдущее занятие в том же дне;
  *  - копирует якорь и, если в маркере были доп. поля,
  *    дозаполняет только отсутствующие (предмет / аудитория / преподаватель);
- *  - помечает результат continuation: true.
+ *  - помечает результат continuation: true;
+ *  - нормализует строки преподавателей.
  *
  * Если якоря нет — ячейка становится null.
  */
@@ -90,9 +156,14 @@ export function normalizeSchedule(schedule) {
         return;
       }
 
-      // Обычная ячейка: сохраняем как есть и обновляем якорь.
-      result[idx][day] = lessons.map(({ continuation, ...rest }) => rest);
-      anchor = lessons.map(({ continuation, ...rest }) => rest);
+      // Обычная ячейка: сохраняем как есть (с нормализованным teacher)
+      // и обновляем якорь.
+      const cleaned = lessons.map(({ continuation, ...rest }) => ({
+        ...rest,
+        teacher: rest.teacher ? normalizeTeacher(rest.teacher) : rest.teacher,
+      }));
+      result[idx][day] = cleaned;
+      anchor = cleaned;
     });
   }
 
@@ -121,6 +192,10 @@ export function compareTime(a, b) {
 /**
  * Плоский список занятий выбранной недели.
  * Каждый элемент: { day, time, group, specialty, subject, room, teacher, continuation }
+ *
+ * Если в ячейке несколько преподавателей через "/", занятие разворачивается
+ * в несколько записей — по одной на каждого преподавателя. Это нужно, чтобы
+ * фильтры и collectTeachers работали с отдельными людьми.
  */
 export function flattenWeek(groups, week) {
   const out = [];
@@ -129,16 +204,21 @@ export function flattenWeek(groups, week) {
     for (const row of g.schedule) {
       for (const day of DAYS) {
         for (const lesson of asLessons(row[day])) {
-          out.push({
+          const teachers = splitTeachers(lesson.teacher || "");
+          const base = {
             day,
             time: row.time,
             group: g.group,
             specialty: g.specialty,
             subject: lesson.subject || "",
             room: lesson.room || "",
-            teacher: lesson.teacher || "",
             continuation: !!lesson.continuation,
-          });
+          };
+          if (teachers.length === 0) {
+            out.push({ ...base, teacher: "" });
+          } else {
+            for (const t of teachers) out.push({ ...base, teacher: t });
+          }
         }
       }
     }
@@ -146,12 +226,22 @@ export function flattenWeek(groups, week) {
   return out;
 }
 
+/**
+ * Уникальные преподаватели, сгруппированные по каноническому ключу.
+ * "Гичкина Е.В," и "Гичкина Е.В." дают одного преподавателя —
+ * остаётся более полное написание.
+ */
 export function collectTeachers(lessons) {
-  const set = new Set();
+  const byKey = new Map(); // teacherKey -> самое полное написание
   for (const l of lessons) {
-    if (l.teacher) set.add(l.teacher);
+    for (const t of splitTeachers(l.teacher || "")) {
+      const k = teacherKey(t);
+      if (!k) continue;
+      const prev = byKey.get(k);
+      if (!prev || t.length > prev.length) byKey.set(k, t);
+    }
   }
-  return [...set].sort((a, b) => a.localeCompare(b, "ru"));
+  return [...byKey.values()].sort((a, b) => a.localeCompare(b, "ru"));
 }
 
 export function collectTimes(lessons) {
@@ -169,13 +259,21 @@ export function collectTimes(lessons) {
 /* ------------------ фильтры ------------------ */
 
 export function groupHasTeacher(group, query) {
-  const q = query.trim().toLowerCase();
+  const q = teacherKey(query);
   if (!q) return true;
+
   return group.schedule.some((row) =>
     DAYS.some((day) =>
-      asLessons(row[day]).some((lesson) =>
-        (lesson?.teacher || "").toLowerCase().includes(q),
-      ),
+      asLessons(row[day]).some((lesson) => {
+        for (const t of splitTeachers(lesson?.teacher || "")) {
+          const k = teacherKey(t);
+          if (k.includes(q)) return true;
+          // запасной вариант: запрос без инициалов ("Малинин")
+          // должен находить "Малинин Н.Н."
+          if (!/\d/.test(q) && teacherSurnameKey(t) === q) return true;
+        }
+        return false;
+      }),
     ),
   );
 }
