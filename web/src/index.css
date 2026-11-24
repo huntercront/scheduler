@@ -289,3 +289,15 @@ td.time {
     flex-direction: column;
   }
 }
+
+.today-header {
+  color: #2563eb;
+}
+.agenda-today {
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  background: #34c759;
+  border-radius: 100%;
+  margin-left: 0.35em;
+}

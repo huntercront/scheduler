@@ -1,7 +1,8 @@
-import { DAYS, collectTimes } from "../lib/schedule.js";
+import { DAYS, collectTimes, getTodayName } from "../lib/schedule.js";
 
 export default function TeacherTable({ lessons }) {
   const times = collectTimes(lessons);
+  const today = getTodayName();
 
   // индекс: time -> day -> [lessons]
   const grid = new Map();
@@ -20,7 +21,9 @@ export default function TeacherTable({ lessons }) {
           <tr>
             <th>Время</th>
             {DAYS.map((d) => (
-              <th key={d}>{d}</th>
+              <th key={d} className={d === today ? "today-header" : ""}>
+                {d}
+              </th>
             ))}
           </tr>
         </thead>

@@ -30,6 +30,12 @@ export function asLessons(value) {
   return Array.isArray(value) ? value : [value];
 }
 
+/** Текущий день недели */
+export function getTodayName() {
+  const days = ["Воскресенье", ...DAYS]; // DAYS начинается с Понедельника
+  return days[new Date().getDay()];
+}
+
 /* ------------------ нормализация преподавателей ------------------ */
 
 /**

@@ -1,6 +1,7 @@
-import { DAYS, asLessons, compareTime } from "../lib/schedule.js";
+import { DAYS, asLessons, compareTime, getTodayName } from "../lib/schedule.js";
 
 export default function GroupAgenda({ group, highlightTeacher }) {
+  const today = getTodayName();
   const byDay = new Map(DAYS.map((d) => [d, []]));
 
   for (const row of group.schedule) {
@@ -36,7 +37,10 @@ export default function GroupAgenda({ group, highlightTeacher }) {
       </h2>
       {nonEmptyDays.map((day) => (
         <section key={day} className="agenda-day">
-          <h3>{day}</h3>
+          <h3>
+            <span>{day}</span>
+            {day === today ? <span className="agenda-today"></span> : ""}
+          </h3>
           <ul>
             {byDay.get(day).map((l, i) => {
               const highlight =

@@ -1,8 +1,9 @@
-import { DAYS, compareTime } from "../lib/schedule.js";
+import { DAYS, compareTime, getTodayName } from "../lib/schedule.js";
 import LessonCell from "./LessonCell.jsx";
 
 export default function GroupTable({ group, highlightTeacher }) {
   const rows = [...group.schedule].sort((a, b) => compareTime(a.time, b.time));
+  const today = getTodayName();
   return (
     <div className="table-wrap">
       <h2>
@@ -13,7 +14,9 @@ export default function GroupTable({ group, highlightTeacher }) {
           <tr>
             <th>Время</th>
             {DAYS.map((d) => (
-              <th key={d}>{d}</th>
+              <th key={d} className={d === today ? "today-header" : ""}>
+                {d}
+              </th>
             ))}
           </tr>
         </thead>
